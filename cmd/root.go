@@ -29,6 +29,8 @@ const (
 	BuildMetadataConfiguration = "build-metadata"
 	DryRunConfiguration        = "dry-run"
 	GitEmailConfiguration      = "git-email"
+	FilterBranchConfiguration  = "filter-branch"
+	FilterProjectConfiguration = "filter-project"
 	GitNameConfiguration       = "git-name"
 	GPGPathConfiguration       = "gpg-key-path"
 	MonorepoConfiguration      = "monorepo"
@@ -64,6 +66,8 @@ func NewRootCommand(ctx *appcontext.AppContext) *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&ctx.BuildMetadataFlag, BuildMetadataConfiguration, "", "Build metadata (e.g. build number) that will be appended to the SemVer")
 	rootCmd.PersistentFlags().StringVar(&ctx.CfgFileFlag, "config", "", "Configuration file path (default \"./"+defaultConfigFile+"."+configFileFormat+"\")")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.DryRunFlag, DryRunConfiguration, "d", false, "Only compute the next SemVer, do not push any tag")
+	rootCmd.PersistentFlags().StringArrayVar(&ctx.FilterBranchFlag, FilterBranchConfiguration, nil, "TODO: add usage")
+	rootCmd.PersistentFlags().StringArrayVar(&ctx.FilterProjectFlag, FilterProjectConfiguration, nil, "TODO: add usage")
 	rootCmd.PersistentFlags().StringVar(&ctx.GitEmailFlag, GitEmailConfiguration, "go-semver@release.ci", "Email used in semantic version tags")
 	rootCmd.PersistentFlags().StringVar(&ctx.GitNameFlag, GitNameConfiguration, "Go Semver Release", "Name used in semantic version tags")
 	rootCmd.PersistentFlags().StringVar(&ctx.GPGKeyPathFlag, GPGPathConfiguration, "", "Path to an armored GPG key used to sign produced tags")

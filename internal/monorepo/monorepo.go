@@ -3,7 +3,10 @@ package monorepo
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 var (
@@ -19,18 +22,23 @@ type Project struct {
 
 // Unmarshall takes a raw Viper configuration and returns a slice of Project representing various projects in a
 // monorepo.
-func Unmarshall(input []map[string]string) ([]Project, error) {
+func Unmarshall(input []map[string]string, filter []string) ([]Project, error) {
 	if len(input) == 0 {
 		return nil, ErrNoProjects
 	}
 
-	projects := make([]Project, len(input))
+	projects := []Project{}
+	missing := slices.Clone(filter)
 
-	for i, p := range input {
+	for _, p := range input {
 
 		name, ok := p["name"]
 		if !ok {
 			return nil, ErrNoName
+		}
+
+		if len(filter) != 0 && !slices.Contains(filter, name) {
+			continue
 		}
 
 		path, ok := p["path"]
@@ -43,7 +51,12 @@ func Unmarshall(input []map[string]string) ([]Project, error) {
 			Path: filepath.Clean(path),
 		}
 
-		projects[i] = project
+		projects = append(projects, project)
+		missing = slices.DeleteFunc(missing, func(s string) bool { return s == name })
+	}
+
+	if len(missing) != 0 {
+		return nil, fmt.Errorf("filtered project(s) `%s` could not be found", strings.Join(missing, ", "))
 	}
 
 	return projects, nil

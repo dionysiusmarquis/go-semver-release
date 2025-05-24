@@ -4,6 +4,9 @@ package branch
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"slices"
+	"strings"
 )
 
 var (
@@ -17,14 +20,15 @@ type Branch struct {
 }
 
 // Unmarshall takes a raw Viper configuration and returns a slice of Branch representing a branch configuration.
-func Unmarshall(input []map[string]any) ([]Branch, error) {
+func Unmarshall(input []map[string]any, filter []string) ([]Branch, error) {
 	if len(input) == 0 {
 		return nil, ErrNoBranch
 	}
 
-	branches := make([]Branch, len(input))
+	branches := []Branch{}
+	missing := slices.Clone(filter)
 
-	for i, b := range input {
+	for _, b := range input {
 
 		name, ok := b["name"]
 		if !ok {
@@ -34,6 +38,10 @@ func Unmarshall(input []map[string]any) ([]Branch, error) {
 		stringName, ok := name.(string)
 		if !ok {
 			return nil, fmt.Errorf("could not assert that the \"name\" property of the branch configuration is a string")
+		}
+
+		if len(filter) != 0 && !slices.Contains(filter, stringName) {
+			continue
 		}
 
 		branch := Branch{Name: stringName}
@@ -48,7 +56,13 @@ func Unmarshall(input []map[string]any) ([]Branch, error) {
 			branch.Prerelease = boolPrerelease
 		}
 
-		branches[i] = branch
+		branches = append(branches, branch)
+		missing = slices.DeleteFunc(missing, func(s string) bool { return s == stringName })
+	}
+
+	slog.Info("--->", branches)
+	if len(missing) != 0 {
+		return nil, fmt.Errorf("filtered branche(s) `%s` could not be found", strings.Join(missing, ", "))
 	}
 
 	return branches, nil

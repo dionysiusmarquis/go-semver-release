@@ -138,7 +138,7 @@ func configureRules(ctx *appcontext.AppContext) (rule.Rules, error) {
 func configureBranches(ctx *appcontext.AppContext) ([]branch.Branch, error) {
 	branchesJSON := []map[string]any(ctx.BranchesFlag)
 
-	unmarshalledBranches, err := branch.Unmarshall(branchesJSON)
+	unmarshalledBranches, err := branch.Unmarshall(branchesJSON, ctx.FilterBranchFlag)
 	if err != nil {
 		return nil, fmt.Errorf("parsing branches configuration: %w", err)
 	}
@@ -155,7 +155,7 @@ func configureProjects(ctx *appcontext.AppContext) ([]monorepo.Project, error) {
 
 	monorepoJSON := []map[string]string(flag)
 
-	projects, err := monorepo.Unmarshall(monorepoJSON)
+	projects, err := monorepo.Unmarshall(monorepoJSON, ctx.FilterProjectFlag)
 	if err != nil {
 		return nil, fmt.Errorf("parsing monorepository projects configuration: %w", err)
 	}

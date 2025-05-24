@@ -19,6 +19,8 @@ type AppContext struct {
 	Projects           []monorepo.Project
 	Rules              rule.Rules
 	BranchesFlag       branch.Flag
+	FilterBranchFlag   []string
+	FilterProjectFlag  []string
 	MonorepositoryFlag monorepo.Flag
 	RulesFlag          rule.Flag
 	Logger             zerolog.Logger
