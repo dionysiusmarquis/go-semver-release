@@ -2,6 +2,7 @@ package gittest
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -46,7 +47,7 @@ type MergeStep struct {
 	// Source branch to merge into current HEAD.
 	source string
 
-	// Whenever only to allow a fast-forwad merge.
+	// Whenever only to allow a fast-forward merge.
 	fastForward bool
 }
 
@@ -121,7 +122,7 @@ func NewMergeStep(branch string, source string, fastForward bool) *MergeStep {
 }
 
 // NewTagStep creates a new merge step.
-// This step greates a new tag with the given name on the given branch.
+// This step greats a new tag with the given name on the given branch.
 func NewTagStep(branch string, name string) *TagStep {
 	return &TagStep{
 		branchStep: branchStep{
@@ -211,7 +212,15 @@ func (s *MergeStep) exec(r *TestRepository) error {
 	args = append(args, s.source)
 
 	cmd := exec.Command("git", args...)
+
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=Go Semver Release",
+		"GIT_AUTHOR_EMAIL=go-semver@release.ci",
+		"GIT_COMMITTER_NAME=Go Semver Release",
+		"GIT_COMMITTER_EMAIL=go-semver@release.ci",
+	)
 	cmd.Dir = r.Path
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s : %w", string(output), err)
