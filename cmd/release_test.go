@@ -321,6 +321,128 @@ rules:
 	checkErr(t, err, "execute test steps")
 }
 
+func TestReleaseCmd_HigherTierChannelVersionBump(t *testing.T) {
+	// Create configuration file
+	cfgContent := []byte(`
+git-name: ` + taggerName + `
+git-email: ` + taggerEmail + `
+tag-prefix: v
+branches:
+  - name: main
+  - name: beta
+    prerelease: true
+rules:
+  minor:
+    - feat
+  patch:
+    - fix
+    - perf
+    - revert
+`)
+
+	cfgFileDirectory, err := os.MkdirTemp("", "*")
+	checkErr(t, err, "creating configuration file")
+
+	defer func() {
+		err = os.RemoveAll(cfgFileDirectory)
+		checkErr(t, err, "removing configuration file")
+	}()
+
+	cfgFilePath := filepath.Join(cfgFileDirectory, "config.yml")
+
+	err = os.WriteFile(cfgFilePath, cfgContent, 0o644)
+	checkErr(t, err, "writing configuration file")
+
+	// Create test steps
+	type e = []*cmdOutput
+	steps := []gittest.Step{
+		gittest.NewCommitStep("main", "feat"),
+		gittest.NewCallbackStep("", e{
+			{
+				Message:    MessageNewRelease,
+				Branch:     "main",
+				Version:    "0.1.0",
+				Project:    "",
+				NewRelease: true,
+				Error:      "",
+			},
+			{
+				Message:    MessageNoNewRelease,
+				Branch:     "beta",
+				Version:    "0.0.0",
+				Project:    "",
+				NewRelease: false,
+				Error:      "remote branch \"refs/remotes/origin/beta\" not found: reference not found",
+			},
+		}),
+
+		gittest.NewCommitStep("main", "chore"),
+		gittest.NewCommitStep("beta", "fix"),
+		gittest.NewCallbackStep("", e{
+			{
+				Message:    MessageNoNewRelease,
+				Branch:     "main",
+				Version:    "0.1.0",
+				Project:    "",
+				NewRelease: false,
+				Error:      "",
+			},
+			{
+				Message:    MessageNewRelease,
+				Branch:     "beta",
+				Version:    "0.1.1-beta.1",
+				Project:    "",
+				NewRelease: true,
+				Error:      "",
+			},
+		}),
+
+		gittest.NewCommitStep("main", "feat"),
+		gittest.NewCommitStep("beta", "chore"),
+		gittest.NewCallbackStep("", e{
+			{
+				Message:    MessageNewRelease,
+				Branch:     "main",
+				Version:    "0.2.0",
+				Project:    "",
+				NewRelease: true,
+				Error:      "",
+			},
+			{
+				Message:    MessageNoNewRelease,
+				Branch:     "beta",
+				Version:    "0.2.0",
+				Project:    "",
+				NewRelease: false,
+				Error:      "",
+			},
+		}),
+	}
+
+	testRepository, err := gittest.NewRepository()
+	checkErr(t, err, "creating sample repository")
+
+	defer func() {
+		err = os.RemoveAll(testRepository.Path)
+		checkErr(t, err, "removing repository")
+	}()
+
+	th := NewTestHelper(t)
+	err = th.SetFlag("config", cfgFilePath)
+	checkErr(t, err, "setting flags")
+
+	var i int
+	err = gittest.ExecuteSteps(testRepository, steps, func(expected e) error {
+		releaseOutput, err := th.ExecuteCommand("release", testRepository.Path)
+		checkErr(t, err, "running release command")
+
+		checkRelease(t, testRepository, i, releaseOutput, expected)
+		i++
+		return nil
+	})
+	checkErr(t, err, "execute test steps")
+}
+
 func TestReleaseCmd_ConfigurationAsFlags(t *testing.T) {
 	assert := assertion.New(t)
 
